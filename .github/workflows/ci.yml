@@ -1,0 +1,71 @@
+name: CI
+
+# Runs on every push and PR against main. Two independent jobs (backend,
+# frontend) run in parallel — a failure in one doesn't block the other from
+# reporting, and together they gate merges via branch protection.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  backend:
+    name: Backend (lint, test, docker build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          # Caches pip downloads between runs, keyed on requirements.txt so
+          # the cache invalidates automatically when deps change.
+          cache: "pip"
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Lint (ruff)
+        run: ruff check .
+
+      - name: Test (pytest)
+        run: pytest -q
+
+      - name: Build Docker image
+        run: docker build -t finsight-backend:ci .
+
+  frontend:
+    name: Frontend (lint, typecheck, build, docker build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      # npm ci (vs. npm install) requires an existing package-lock.json and
+      # installs exactly what it specifies — reproducible, and faster in CI.
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint (oxlint)
+        run: npm run lint
+
+      # `npm run build` runs `tsc -b` (typecheck) before `vite build`, so a
+      # type error fails the build step rather than silently shipping.
+      - name: Typecheck + build
+        run: npm run build
+
+      - name: Build Docker image
+        run: docker build -t finsight-frontend:ci .
