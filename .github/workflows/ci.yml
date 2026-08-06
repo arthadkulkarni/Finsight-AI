@@ -27,6 +27,12 @@ jobs:
           cache: "pip"
           cache-dependency-path: backend/requirements.txt
 
+      # The Unstructured PDF pipeline needs these at import/parse time, same
+      # as the system packages installed in the Dockerfile — the runner here
+      # is a bare VM, not the container, so it needs its own copy.
+      - name: Install system dependencies
+        run: sudo apt-get update && sudo apt-get install -y poppler-utils tesseract-ocr libmagic1
+
       - name: Install dependencies
         run: pip install -r requirements.txt
 
