@@ -1,3 +1,4 @@
+from app.config import settings
 from app.services import generation
 from app.services.retrieval import RetrievedChunk
 
@@ -45,12 +46,32 @@ def test_answer_question_stream_yields_deltas_then_sources(monkeypatch):
             "page_number": 3,
             "section_heading": "Item 1. Business",
             "content": "The company sells widgets.",
-            "image_path": None,
+            "image_url": None,
             "relevance_score": 0.98,
         }
     ]
     assert "[1]" in captured_prompt["user"]
     assert "The company sells widgets." in captured_prompt["user"]
+
+
+def test_build_source_converts_a_chart_image_path_to_a_relative_url():
+    image_path = str(settings.extracted_image_dir / "doc.pdf" / "chart-1.png")
+    chunk = RetrievedChunk(
+        point_id="22222222-2222-2222-2222-222222222222",
+        payload={
+            "element_type": "chart",
+            "document_name": "doc.pdf",
+            "page_number": 8,
+            "section_heading": "Item 5. Market for Common Equity",
+            "embedding_text": "A bar chart of quarterly revenue.",
+            "image_path": image_path,
+        },
+        score=0.5,
+    )
+
+    source = generation._build_source(1, chunk, 0.5)
+
+    assert source["image_url"] == "/images/doc.pdf/chart-1.png"
 
 
 def test_answer_question_stream_handles_no_sources(monkeypatch):

@@ -46,7 +46,7 @@ jobs:
         run: docker build -t finsight-backend:ci .
 
   frontend:
-    name: Frontend (lint, typecheck, build, docker build)
+    name: Frontend (lint, test, typecheck, build, docker build)
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -67,6 +67,9 @@ jobs:
 
       - name: Lint (oxlint)
         run: npm run lint
+
+      - name: Test (vitest)
+        run: npm test
 
       # `npm run build` runs `tsc -b` (typecheck) before `vite build`, so a
       # type error fails the build step rather than silently shipping.

@@ -1,7 +1,9 @@
 from collections.abc import Iterator
+from pathlib import Path
 from typing import Any
 
 from app.clients import anthropic_client, cohere_client
+from app.config import settings
 from app.services.retrieval import RetrievedChunk, hybrid_search
 
 _SYSTEM_PROMPT = (
@@ -58,9 +60,23 @@ def _build_source(rank: int, chunk: RetrievedChunk, score: float) -> dict[str, A
         "page_number": payload.get("page_number"),
         "section_heading": payload.get("section_heading"),
         "content": content,
-        "image_path": payload.get("image_path"),
+        "image_url": _image_url(payload.get("image_path")),
         "relevance_score": score,
     }
+
+
+def _image_url(image_path: str | None) -> str | None:
+    """A source's image_path is an absolute filesystem path inside the
+    container — meaningless to a browser. Convert it to the relative URL
+    the /images static mount actually serves.
+    """
+    if not image_path:
+        return None
+    try:
+        relative = Path(image_path).relative_to(settings.extracted_image_dir)
+    except ValueError:
+        return None
+    return f"/images/{relative.as_posix()}"
 
 
 def _build_prompt(question: str, sources: list[dict[str, Any]]) -> str:
