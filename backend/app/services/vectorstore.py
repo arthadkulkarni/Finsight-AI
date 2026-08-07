@@ -8,14 +8,21 @@ _client: QdrantClient | None = None
 
 
 def get_client() -> QdrantClient:
-    """Qdrant in local embedded mode: writes to a folder on disk instead of
-    talking to a server. Same client API as a real Qdrant server, so moving
-    to the Docker Compose service later is just swapping `path=` for `url=`.
+    """Connect to a real Qdrant server when QDRANT_URL is set (Docker
+    Compose); otherwise fall back to local embedded mode, which writes to a
+    folder on disk instead of talking to a server. Same client API either
+    way. Local mode only allows one process to hold its storage directory
+    open at a time — fine for a single bare-metal process, but breaks the
+    moment a separate API process and worker process both need it, which is
+    exactly why Compose runs a real server instead.
     """
     global _client
     if _client is None:
-        settings.qdrant_path.mkdir(parents=True, exist_ok=True)
-        _client = QdrantClient(path=str(settings.qdrant_path))
+        if settings.qdrant_url:
+            _client = QdrantClient(url=settings.qdrant_url)
+        else:
+            settings.qdrant_path.mkdir(parents=True, exist_ok=True)
+            _client = QdrantClient(path=str(settings.qdrant_path))
     return _client
 
 

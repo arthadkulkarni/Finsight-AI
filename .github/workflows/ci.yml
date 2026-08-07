@@ -75,3 +75,36 @@ jobs:
 
       - name: Build Docker image
         run: docker build -t finsight-frontend:ci .
+
+  compose-smoke-test:
+    name: Docker Compose smoke test
+    runs-on: ubuntu-latest
+    # Only worth the extra build time if the components already pass on
+    # their own — this rebuilds both images fresh (no cache shared with the
+    # jobs above, since each runs on its own VM).
+    needs: [backend, frontend]
+    steps:
+      - uses: actions/checkout@v4
+
+      # No real API keys in CI (and none requested as repo secrets for
+      # this) — a placeholder .env is enough to prove the stack starts and
+      # every service can reach every other service.
+      - name: Create a placeholder .env
+        run: cp backend/.env.example backend/.env
+
+      - name: Build and start the stack, waiting for every healthcheck
+        run: docker compose up -d --build --wait
+
+      - name: Hit the API directly
+        run: curl -sf http://localhost:8000/health
+
+      - name: Hit the API through the frontend's nginx proxy
+        run: curl -sf http://localhost:3000/api/health
+
+      - name: Show service logs on failure
+        if: failure()
+        run: docker compose logs
+
+      - name: Tear down
+        if: always()
+        run: docker compose down -v

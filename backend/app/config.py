@@ -24,6 +24,12 @@ class Settings(BaseSettings):
     extracted_image_dir: Path = BACKEND_DIR / "data" / "images"
     qdrant_path: Path = BACKEND_DIR / "data" / "qdrant"
     qdrant_collection: str = "filings"
+    # When set (e.g. by docker-compose), connect to a real Qdrant server
+    # instead of local embedded mode. Local mode locks its storage directory
+    # to a single process, which breaks the moment the API and Celery worker
+    # need to read it at the same time — a real server is what Compose gives
+    # both containers to talk to instead.
+    qdrant_url: str | None = None
 
     redis_url: str = "redis://localhost:6379/0"
 
