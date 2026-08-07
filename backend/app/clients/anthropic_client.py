@@ -1,4 +1,5 @@
 import base64
+from collections.abc import Iterator
 from pathlib import Path
 
 import anthropic
@@ -84,6 +85,17 @@ def describe_chart(image_path: str) -> str:
         ],
     )
     return _first_text(response)
+
+
+def stream_answer(system_prompt: str, user_prompt: str) -> Iterator[str]:
+    """Stream Claude's answer text as it's generated, chunk by chunk."""
+    with _get_client().messages.stream(
+        model=settings.claude_model,
+        max_tokens=1024,
+        system=system_prompt,
+        messages=[{"role": "user", "content": user_prompt}],
+    ) as stream:
+        yield from stream.text_stream
 
 
 def _first_text(response: anthropic.types.Message) -> str:

@@ -10,6 +10,7 @@ class Settings(BaseSettings):
 
     openai_api_key: str | None = None
     anthropic_api_key: str | None = None
+    cohere_api_key: str | None = None
 
     # OpenAI's text-embedding-3-small — fixed here because the Qdrant
     # collection's vector size is created to match it.
@@ -17,11 +18,21 @@ class Settings(BaseSettings):
     embedding_dimensions: int = 1536
 
     claude_model: str = "claude-sonnet-5"
+    cohere_rerank_model: str = "rerank-v4.0-pro"
 
     upload_dir: Path = BACKEND_DIR / "data" / "uploads"
     extracted_image_dir: Path = BACKEND_DIR / "data" / "images"
     qdrant_path: Path = BACKEND_DIR / "data" / "qdrant"
     qdrant_collection: str = "filings"
+
+    redis_url: str = "redis://localhost:6379/0"
+
+    # Retrieval tuning: candidates pulled from each retriever before fusion,
+    # candidates kept after fusion, and final sources kept after rerank.
+    dense_search_k: int = 20
+    bm25_search_k: int = 20
+    fused_k: int = 20
+    rerank_top_n: int = 5
 
 
 settings = Settings()
